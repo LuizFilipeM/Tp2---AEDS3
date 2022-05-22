@@ -3,15 +3,16 @@
 
 pixel** registro(int altura, int largura, FILE *file, pixel** matriz){
     //**FUNÇAO REGISTRO*****
-        int  valor, n = 0, m = 0, cont = 1, k = 0;
+        int  valor, n = 0, m = 0, cont = 1;
         char leitor[500];
         matriz = (pixel**) malloc(altura * sizeof(pixel*));
         matriz[n] = (pixel*) malloc(largura * sizeof(pixel));
+        matriz[n][m].R = 0;
+        matriz[n][m].G = 0;
+        matriz[n][m].B = 0;
 
-        printf("btf\n");
         //percorre a linha em busca dos valores de R, G e B
         while(fgets(leitor, 500, file) != NULL){
-            k++;
 
             for(int i = 0; i < 500; i++){
 
@@ -25,19 +26,22 @@ pixel** registro(int altura, int largura, FILE *file, pixel** matriz){
                     if(cont > 3){
                         matriz[n][m].Intensidade = 0.30 * matriz[n][m].R + 0.59 * matriz[n][m].G + 0.11 * matriz[n][m].B;
                         if((n == altura - 1) && (m == largura - 1)){
-                            printf("Cont: %d -- %s\n", k, leitor);
                             break;
                         }
                         if((m == largura-1) && (n < altura - 1)){
-                            printf("i: %d j: %d\n", n, m);
-                            printf("%d %d %d\n", matriz[n][m].R,matriz[n][m].G, matriz[n][m].B);
                             cont = 1;
                             m = 0;
                             n++;
                             matriz[n] = (pixel*) malloc(largura * sizeof(pixel));
+                            matriz[n][m].R = 0;
+                            matriz[n][m].G = 0;
+                            matriz[n][m].B = 0;
                         }
                         else{
                             m++; //avança uma coluna na matriz
+                            matriz[n][m].R = 0;
+                            matriz[n][m].G = 0;
+                            matriz[n][m].B = 0;
                         }
                         cont = 1;
                     }
@@ -86,8 +90,6 @@ pixel** registro(int altura, int largura, FILE *file, pixel** matriz){
                     }
                 }
             }
-            printf("i: %d j: %d\n", n, m);
-            printf("%d %d %d\n", matriz[n][m].R,matriz[n][m].G, matriz[n][m].B);
 
             cont++; //avanca o registro entre R, G e B
 
@@ -104,11 +106,11 @@ pixel** registro(int altura, int largura, FILE *file, pixel** matriz){
                 m = 0;
                 n++;
                 matriz[n] = (pixel*) malloc(largura * sizeof(pixel));
+                matriz[n][m].R = 0;
+                matriz[n][m].G = 0;
+                matriz[n][m].B = 0;
             }
         }
-        n = 3;
-        m = 13;
-        printf("%d %d %d\n", matriz[n][m].R,matriz[n][m].G, matriz[n][m].B);
         return matriz;
 }
 
@@ -137,21 +139,48 @@ void limpeza(int altura, pixel** matriz){
 }
 
 
-void remocao(int largura, pixel** matriz, int y, int x){
+void remocao(int largura, int altura, pixel** matriz){
     //***FUNCAO REMOCAO****
-    for(x; x < largura - 1; x++){
-        matriz[y][x] = matriz[y][x+1];
+    int x = 0, y = 0, x_aux, direcao;
+    double min = 1000000000;
+    for(x; x < largura; x++){
+        if(min > matriz[y][x].Caminho){
+            x_aux = x;
+            min = matriz[y][x].Caminho;
+        }
+    }
+    
+    for(y; y < altura; y++){
+        direcao = matriz[y][x_aux].Direcao;
+
+        for(x = x_aux; x < largura - 1; x++){
+            matriz[y][x] = matriz[y][x+1];
+        }
+        if(y < altura - 1){
+
+        switch(direcao){
+            case 1:
+                x_aux = x_aux - 1;
+            break;
+            case 2:
+                x_aux = x_aux;
+            break;
+            case 3:
+                x_aux = x_aux + 1;
+            break;
+        }
+        }
     }
 }
 
 float Operador_de_Sobel(float sup_esq, float sup, float sup_dir, float esq, float dir, float inf_esq, float inf, float inf_dir){
-    int m, n;
     float mascara_x, mascara_y, energia_do_pixel;
     mascara_x = (1 * sup_esq) + (-1 * sup_dir) + (2 * esq) + (-2 * dir) + (1 * inf_esq) + (-1 * inf_dir); 
     mascara_y = (1 * sup_esq) + (2 * sup) + (1 * sup_dir) + (-1 * inf_esq) + (-2 * inf) + (-1 * inf_dir);
-    mascara_x = sqrt(mascara_x * mascara_x);
-    mascara_y = sqrt(mascara_y * mascara_y);
-    energia_do_pixel = atan2(mascara_y, mascara_x);
+    mascara_x = (mascara_x * mascara_x);
+    mascara_y = (mascara_y * mascara_y);
+    energia_do_pixel = (mascara_x) + (mascara_y);
+    energia_do_pixel = sqrtf(energia_do_pixel);
     return energia_do_pixel;
 }
 
@@ -167,61 +196,85 @@ void gravador(int altura, int largura, pixel** matriz){
         fprintf(file, "\n");
     }
     fclose(file);
-    file = fopen("saida.pgm", "w");
-    fprintf(file, "P2\n");
-    fprintf(file, "%d %d\n", largura, altura);
-    fprintf(file, "255\n");
-    for(int i = 0; i < altura; i++){
-        for(int j = 0; j < largura ; j++){
-            fprintf(file, "%.4f ", matriz[i][j].Energia);
-        }
-        fprintf(file, "\n");
-    }
+
 }
 
 void calculador(int altura, int largura, pixel** matriz){
     int x = 0, y = 0;
-    printf("%.2f %.2f %.2f\n%.2f *** %.2f\n%.2f %.2f %.2f\n", matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
-
-    //***SUPERIOR
-    //superior lateral esquerdo
-    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
-    x++;
-    for(x ; x < largura - 1; x++){
-    //superior meio
-    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
-    }
-    //superior lateral direito
-    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade);
-    y++;
-    x = 0;
-
-    //***MEIO
-    for(y; y < altura - 1; y++){
-    //meio lateral esquerdo
-    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
-    printf("y: %d x: %d ", y, x);
-    x++;
-    for(x ; x < largura - 1; x++){
-    //meio
-    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y - 1][x - 1].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
-    }
-    //meio lateral direito
-    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y - 1][x - 1].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade);
-    printf("y: %d x: %d\n", y, x);
-    x = 0;
-    }
-
+    y = altura - 1;
+    
     //***INFERIOR
     //inferior lateral esquerdo
-    printf("%d\n", y);
     matriz[y][x].Energia =  Operador_de_Sobel(matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade);
+    matriz[y][x].Caminho = matriz[y][x].Energia;
     x++;
     for(x ; x < largura - 1; x++){
     //inferior meio
     matriz[y][x].Energia =  Operador_de_Sobel(matriz[y - 1][x - 1].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade);
+    matriz[y][x].Caminho = matriz[y][x].Energia;
     }
     //inferior lateral direito
     matriz[y][x].Energia =  Operador_de_Sobel(matriz[y - 1][x - 1].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x].Intensidade);
+    matriz[y][x].Caminho = matriz[y][x].Energia;
+    y--;
+    x = 0;
 
+    //***MEIO
+    for(y; y > 0; y--){
+    //meio lateral esquerdo
+    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
+    matriz[y][x] = calculador_de_caminho(-1, matriz[y + 1][x].Caminho, matriz[y + 1][x + 1].Caminho, matriz[y][x]);
+    x++;
+    for(x ; x < largura - 1; x++){
+    //meio
+    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y - 1][x - 1].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
+    matriz[y][x] = calculador_de_caminho(matriz[y + 1][x - 1].Caminho, matriz[y + 1][x].Caminho, matriz[y + 1][x + 1].Caminho, matriz[y][x]);
+    }
+    //meio lateral direito
+    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y - 1][x - 1].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade);
+    matriz[y][x] = calculador_de_caminho(matriz[y + 1][x - 1].Caminho, matriz[y + 1][x].Caminho, -1, matriz[y][x]);
+    x = 0;
+    }
+
+    //***SUPERIOR
+    //superior lateral esquerdo
+    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
+    matriz[y][x] = calculador_de_caminho(-1, matriz[y + 1][x].Caminho, matriz[y + 1][x + 1].Caminho, matriz[y][x]);
+    x++;
+    for(x ; x < largura - 1; x++){
+    //superior meio
+    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
+    matriz[y][x] = calculador_de_caminho(matriz[y + 1][x - 1].Caminho, matriz[y + 1][x].Caminho, matriz[y + 1][x + 1].Caminho, matriz[y][x]);
+    }
+    //superior lateral direito
+    matriz[y][x].Energia =  Operador_de_Sobel(matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade);
+    matriz[y][x] = calculador_de_caminho(matriz[y + 1][x - 1].Caminho, matriz[y + 1][x].Caminho, -1, matriz[y][x]);
+
+}
+
+
+pixel calculador_de_caminho(double esq, double baixo, double dir, pixel elemento){
+    double min = 10000000;
+    int direcao = 0;
+    if(esq != -1){
+        if(min > esq){
+            min = esq;
+            direcao = 1;
+        }
+    }
+    if(baixo != -1){
+        if(min > baixo){
+            min = baixo;
+            direcao = 2;
+        }
+    }
+    if(dir != -1){
+        if(min > dir){
+            min = dir;
+            direcao = 3;
+        }
+    }
+    elemento.Caminho = elemento.Energia + min;
+    elemento.Direcao = direcao;
+    return elemento;
 }
