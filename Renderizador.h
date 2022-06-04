@@ -2,22 +2,28 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
-
+#include <getopt.h>
 
 typedef struct pixel{
     int R, G, B, Direcao;
-    float Intensidade, Energia;
+   float Intensidade, Energia;
     double Caminho;
-}pixel;
+} pixel;
+
+
+typedef struct parametros{
+    int linhas, colunas, operador;
+    char estrategia[2], file[60];
+} parametros;
 
 
 
-pixel** registro(int ,int ,FILE* ,pixel**);
-void leitor(int, int, pixel**);
-void limpeza(int , pixel**);
-void remocao(int , int, pixel**);
+pixel** registro_de_matriz_dinamica(int ,int ,FILE* , pixel**);
+void limpeza_de_matriz_dinamica(int , pixel**);
+void remocao_de_matriz_dinamica(int , int, pixel**);
 float Operador_de_Sobel(float, float, float, float, float, float, float, float);
-void gravador(int, int, pixel**);
-void calculador(int, int, pixel**);
+void gravador_de_matriz_dinamica(int, int, pixel**);
+void calculador_de_matriz_dinamica(int, int, pixel**);
 pixel calculador_de_caminho(double, double, double, pixel);
+pixel** transpor_de_matriz_dinamica(int, int, pixel**);
+void retorna_parametros(int, char**, parametros*);
