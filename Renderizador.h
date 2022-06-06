@@ -3,6 +3,9 @@
 #include <string.h>
 #include <math.h>
 #include <getopt.h>
+#include <unistd.h>
+#include <sys/resource.h>
+#include <sys/time.h>
 
 typedef struct pixel{
     int R, G, B, Direcao;
@@ -29,3 +32,6 @@ pixel calculador_de_caminho(double, double, double, pixel);
 pixel** transpor_de_matriz_dinamica(int, int, pixel**);
 int menorcaminhoDinamica(int, pixel**);
 int retorna_parametros(int, char**, parametros*);
+//funções para medir o tempo
+float diffUserTime(struct rusage *, struct rusage *);
+float diffSystemTime(struct rusage *, struct rusage *);
