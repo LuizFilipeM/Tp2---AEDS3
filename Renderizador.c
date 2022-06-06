@@ -1,7 +1,7 @@
 #include "Renderizador.h"
 
 
- 
+//registra os dados da imagem passada em uma matriz dinâmica
 pixel** registro_de_matriz_dinamica(int altura, int largura, FILE *file, pixel** matriz){
     //**FUNÇAO REGISTRO*****
         int  valor, n = 0, m = 0, cont = 1;
@@ -115,6 +115,7 @@ pixel** registro_de_matriz_dinamica(int altura, int largura, FILE *file, pixel**
         return matriz;
 }
 
+//libera os dados anteriormente alocados na memória
 void limpeza_de_matriz_dinamica(int altura, pixel** matriz){
     //***FUNCAO LIMPEZA****
     for(int i = 0; i < altura; i++){
@@ -123,6 +124,7 @@ void limpeza_de_matriz_dinamica(int altura, pixel** matriz){
     free(matriz);
 }
 
+//realiza a remoção do melhor caminho
 void remocao_de_matriz_dinamica(int largura, int altura, pixel** matriz){
     //***FUNCAO REMOCAO****
     int x = 0, y = 0, x_aux, direcao;
@@ -156,6 +158,7 @@ void remocao_de_matriz_dinamica(int largura, int altura, pixel** matriz){
     }
 }
 
+//calcula a relevância de um pixel baseado no operador de Sobel
 float Operador_de_Sobel(float sup_esq, float sup, float sup_dir, float esq, float dir, float inf_esq, float inf, float inf_dir){
     float mascara_x, mascara_y, energia_do_pixel;
     mascara_x = (1 * sup_esq) + (-1 * sup_dir) + (2 * esq) + (-2 * dir) + (1 * inf_esq) + (-1 * inf_dir); 
@@ -167,6 +170,19 @@ float Operador_de_Sobel(float sup_esq, float sup, float sup_dir, float esq, floa
     return energia_do_pixel;
 }
 
+//calcula a relevância de um pixel baseado no operador de Prewwit
+float Operador_de_Prewwit(float sup_esq, float sup, float sup_dir, float esq, float dir, float inf_esq, float inf, float inf_dir){
+    float mascara_x, mascara_y, energia_do_pixel;
+    mascara_x = (-1 * sup_esq) + (1 * sup_dir) + (-1 * esq) + (1 * dir) + (-1 * inf_esq) + (1 * inf_dir); 
+    mascara_y = (-1 * sup_esq) + (-1 * sup) + (-1 * sup_dir) + (1 * inf_esq) + (1 * inf) + (1 * inf_dir);
+    mascara_x = (mascara_x * mascara_x);
+    mascara_y = (mascara_y * mascara_y);
+    energia_do_pixel = (mascara_x) + (mascara_y);
+    energia_do_pixel = sqrtf(energia_do_pixel);
+    return energia_do_pixel;
+}
+
+//registra em um arquivo .ppm os resultados da remoção
 void gravador_de_matriz_dinamica(int altura, int largura, pixel** matriz){
     FILE *file = fopen("saida.ppm", "w");
     fprintf(file, "P3\n");
@@ -182,10 +198,12 @@ void gravador_de_matriz_dinamica(int altura, int largura, pixel** matriz){
 
 }
 
-void calculador_de_matriz_dinamica(int altura, int largura, pixel** matriz){
+//calcula as energias de cada pixel, e os caminhos
+void calculador_de_matriz_dinamica(int altura, int largura, pixel** matriz, int operador){
     int x = 0, y = 0;
     y = altura - 1;
     
+    if(operador == 0){
     //***INFERIOR
     //inferior lateral esquerdo
     matriz[y][x].Energia =  Operador_de_Sobel(matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade);
@@ -232,8 +250,59 @@ void calculador_de_matriz_dinamica(int altura, int largura, pixel** matriz){
     //superior lateral direito
     matriz[y][x].Energia =  Operador_de_Sobel(matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade);
     matriz[y][x] = calculador_de_caminho(matriz[y + 1][x - 1].Caminho, matriz[y + 1][x].Caminho, -1, matriz[y][x]);
+    }
+
+    if(operador == 1){
+      //***INFERIOR
+    //inferior lateral esquerdo
+    matriz[y][x].Energia =  Operador_de_Prewwit(matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade);
+    matriz[y][x].Caminho = matriz[y][x].Energia;
+    x++;
+    for(x ; x < largura - 1; x++){
+        //inferior meio
+        matriz[y][x].Energia =  Operador_de_Prewwit(matriz[y - 1][x - 1].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade);
+        matriz[y][x].Caminho = matriz[y][x].Energia;
+    }
+    //inferior lateral direito
+    matriz[y][x].Energia =  Operador_de_Prewwit(matriz[y - 1][x - 1].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x].Intensidade);
+    matriz[y][x].Caminho = matriz[y][x].Energia;
+    y--;
+    x = 0;
+
+    //***MEIO
+    for(y; y > 0; y--){
+        //meio lateral esquerdo
+        matriz[y][x].Energia =  Operador_de_Prewwit(matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
+        matriz[y][x] = calculador_de_caminho(-1, matriz[y + 1][x].Caminho, matriz[y + 1][x + 1].Caminho, matriz[y][x]);
+        x++;
+        for(x ; x < largura - 1; x++){
+            //meio
+            matriz[y][x].Energia =  Operador_de_Prewwit(matriz[y - 1][x - 1].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x + 1].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
+            matriz[y][x] = calculador_de_caminho(matriz[y + 1][x - 1].Caminho, matriz[y + 1][x].Caminho, matriz[y + 1][x + 1].Caminho, matriz[y][x]);
+        }
+        //meio lateral direito
+        matriz[y][x].Energia =  Operador_de_Prewwit(matriz[y - 1][x - 1].Intensidade, matriz[y - 1][x].Intensidade, matriz[y - 1][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade);
+        matriz[y][x] = calculador_de_caminho(matriz[y + 1][x - 1].Caminho, matriz[y + 1][x].Caminho, -1, matriz[y][x]);
+        x = 0;
+    }
+
+    //***SUPERIOR
+    //superior lateral esquerdo
+    matriz[y][x].Energia =  Operador_de_Prewwit(matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
+    matriz[y][x] = calculador_de_caminho(-1, matriz[y + 1][x].Caminho, matriz[y + 1][x + 1].Caminho, matriz[y][x]);
+    x++;
+    for(x ; x < largura - 1; x++){
+        //superior meio
+        matriz[y][x].Energia =  Operador_de_Prewwit(matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x + 1].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x + 1].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x + 1].Intensidade);
+        matriz[y][x] = calculador_de_caminho(matriz[y + 1][x - 1].Caminho, matriz[y + 1][x].Caminho, matriz[y + 1][x + 1].Caminho, matriz[y][x]);
+    }
+    //superior lateral direito
+    matriz[y][x].Energia =  Operador_de_Prewwit(matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y][x].Intensidade, matriz[y][x - 1].Intensidade, matriz[y][x].Intensidade, matriz[y + 1][x - 1].Intensidade, matriz[y + 1][x].Intensidade, matriz[y + 1][x].Intensidade);
+    matriz[y][x] = calculador_de_caminho(matriz[y + 1][x - 1].Caminho, matriz[y + 1][x].Caminho, -1, matriz[y][x]);  
+    }
 }
 
+//calcula o melhor caminho de um pixel para outro
 pixel calculador_de_caminho(double esq, double baixo, double dir, pixel elemento){
     double min = 10000000;
     int direcao = 0;
@@ -260,6 +329,7 @@ pixel calculador_de_caminho(double esq, double baixo, double dir, pixel elemento
     return elemento;
 }
 
+//trasnpoe uma matriz
 pixel** transpor_de_matriz_dinamica(int altura, int largura, pixel** matriz){
     pixel** matriz2;
     matriz2 = (pixel**) malloc(largura * sizeof(pixel*));
@@ -281,17 +351,16 @@ pixel** transpor_de_matriz_dinamica(int altura, int largura, pixel** matriz){
     return matriz2;
 }
 
-void retorna_parametros(int argc, char **argv, parametros *param){
+//coleta os parametros passados na execução
+int retorna_parametros(int argc, char **argv, parametros *param){
     param->operador = 0;
     param->linhas = 0;
     param->colunas = 0;
     char opt;
     strcpy(param->estrategia, argv[1]);
-    while((opt = getopt(argc, argv, "h:w:f:t:")) != -1){
+    strcpy(param->file, argv[2]);
+    while((opt = getopt(argc, argv, "h:w:t:")) != -1){
         switch(opt){
-            case 'f':
-                strcpy(param->file, optarg);
-            break;
             case 'h':
                 if(optarg != NULL)
                     param->linhas = atoi(optarg);
@@ -305,8 +374,22 @@ void retorna_parametros(int argc, char **argv, parametros *param){
             break;
             default:
                 printf("Tente novamente entrada invalida.\n");
+                return 0;
                 break;
             break;
         }
     }
+    return 1;
+}
+
+//retorna a energia do menor caminho
+int menorcaminhoDinamica(int largura, pixel** matriz){
+    double min = 1000000000;
+    int y = 0;
+    for(int x = 0; x < largura; x++){
+        if(min > matriz[y][x].Caminho){
+            min = matriz[y][x].Caminho;
+        }
+    }
+    return min;
 }

@@ -11,5 +11,6 @@ void apontador_de_grafo(int, int, grafo*);
 void limpeza_de_grafo(int, int,  grafo*);
 void remocao_de_grafo(int, int,  grafo*);
 void gravador_de_grafo(int, int,  grafo*);
-void calculador_de_grafo(int, int,  grafo*);
+void calculador_de_grafo(int, int,  grafo*, int);
 grafo* transpor_de_grafo(int, int, grafo*);
+int menorcaminhoGrafo(int, grafo*);

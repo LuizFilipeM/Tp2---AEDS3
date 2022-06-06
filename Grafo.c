@@ -2,7 +2,7 @@
 
 
 grafo* registro_de_grafo(int altura, int largura, FILE *file,  grafo* matriz){
-    //**FUNÇAO REGISTRO*****
+    //**FUNÇAO REGISTRO de dados*****
         int  valor, n = 0, cont = 1;
         char leitor[500];
         matriz = ( grafo*) malloc((largura * altura) * sizeof( grafo));
@@ -102,6 +102,7 @@ grafo* registro_de_grafo(int altura, int largura, FILE *file,  grafo* matriz){
         return matriz;
 }
 
+//relaiza o apontamento dos vertices adjacentes de cada vertice do grafo
 void apontador_de_grafo(int altura, int largura,  grafo* matriz){
     int n = 0;
     matriz[n].A[0] = &matriz[n];
@@ -191,13 +192,14 @@ void apontador_de_grafo(int altura, int largura,  grafo* matriz){
     matriz[n].A[7] = &matriz[n];
 }
 
+//libera a memória anteriormente alocada pelo grafo
 void limpeza_de_grafo(int altura, int largura,  grafo* matriz){
     //Libera a memória alocada pelo grafo
     free(matriz);
 }
 
+//Remove uma coluna da imagem, pelo tipo grafo 
 void remocao_de_grafo(int largura, int altura,  grafo* matriz){
-    //Remove uma coluna da imagem, pelo tipo grafo 
     int x = 0, y = 0, x_aux, direcao, cont;
     double min = 1000000000;
     for(x; x < largura; x++){
@@ -239,6 +241,7 @@ void remocao_de_grafo(int largura, int altura,  grafo* matriz){
     apontador_de_grafo(altura, largura, matriz);
 }
 
+//grava os dados finais em um arquivo do tipo .ppm
 void gravador_de_grafo(int altura, int largura,  grafo* matriz){
     FILE *file = fopen("saida.ppm", "w");
     int i = 0, cont;
@@ -255,10 +258,12 @@ void gravador_de_grafo(int altura, int largura,  grafo* matriz){
     fclose(file);
 }
 
-void calculador_de_grafo(int altura, int largura,  grafo* matriz){
+//calcula as energis de cada vertice e os caminhos
+void calculador_de_grafo(int altura, int largura,  grafo* matriz, int operador){
     int y;
     y = (altura * largura) - 1;
     
+    if(operador == 0){
     for(y; y >= ((altura * largura) - largura); y--){
         matriz[y].V.Energia =  Operador_de_Sobel(matriz[y].A[0]->V.Intensidade, matriz[y].A[1]->V.Intensidade, matriz[y].A[2]->V.Intensidade, matriz[y].A[3]->V.Intensidade, matriz[y].A[4]->V.Intensidade, matriz[y].A[3]->V.Intensidade, matriz[y].V.Intensidade, matriz[y].A[4]->V.Intensidade);
         matriz[y].V.Caminho = matriz[y].V.Energia;
@@ -282,9 +287,35 @@ void calculador_de_grafo(int altura, int largura,  grafo* matriz){
         }
         y--;
     }
+    }
+    if(operador == 1){
+        for(y; y >= ((altura * largura) - largura); y--){
+        matriz[y].V.Energia =  Operador_de_Prewwit(matriz[y].A[0]->V.Intensidade, matriz[y].A[1]->V.Intensidade, matriz[y].A[2]->V.Intensidade, matriz[y].A[3]->V.Intensidade, matriz[y].A[4]->V.Intensidade, matriz[y].A[3]->V.Intensidade, matriz[y].V.Intensidade, matriz[y].A[4]->V.Intensidade);
+        matriz[y].V.Caminho = matriz[y].V.Energia;
+        
+    }
+    for(y; y >= largura - 1;){
+        matriz[y].V.Energia =  Operador_de_Prewwit(matriz[y].A[0]->V.Intensidade, matriz[y].A[1]->V.Intensidade, matriz[y].A[2]->V.Intensidade, matriz[y].A[3]->V.Intensidade, matriz[y].A[4]->V.Intensidade, matriz[y].A[5]->V.Intensidade, matriz[y].A[6]->V.Intensidade, matriz[y].A[7]->V.Intensidade);
+        matriz[y].V = calculador_de_caminho(matriz[y].A[5]->V.Caminho, matriz[y].A[6]->V.Caminho, -1, matriz[y].V);
+        y--;
 
+        for(y; (y+1)%largura != 1; y--){
+            matriz[y].V.Energia =  Operador_de_Prewwit(matriz[y].A[0]->V.Intensidade, matriz[y].A[1]->V.Intensidade, matriz[y].A[2]->V.Intensidade, matriz[y].A[3]->V.Intensidade, matriz[y].A[4]->V.Intensidade, matriz[y].A[5]->V.Intensidade, matriz[y].A[6]->V.Intensidade, matriz[y].A[7]->V.Intensidade);
+            matriz[y].V = calculador_de_caminho(matriz[y].A[5]->V.Caminho, matriz[y].A[6]->V.Caminho, matriz[y].A[7]->V.Caminho, matriz[y].V);
+        }
+
+        matriz[y].V.Energia =  Operador_de_Prewwit(matriz[y].A[0]->V.Intensidade, matriz[y].A[1]->V.Intensidade, matriz[y].A[2]->V.Intensidade, matriz[y].A[3]->V.Intensidade, matriz[y].A[4]->V.Intensidade, matriz[y].A[5]->V.Intensidade, matriz[y].A[6]->V.Intensidade, matriz[y].A[7]->V.Intensidade);
+        matriz[y].V = calculador_de_caminho(-1, matriz[y].A[6]->V.Caminho, matriz[y].A[7]->V.Caminho, matriz[y].V);
+        if(y == 20){
+            printf("%.2f -- %.2f\n", matriz[y].V.Energia, matriz[y].V.Caminho);
+            printf("%.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f\n",matriz[y].A[0]->V.Intensidade, matriz[y].A[1]->V.Intensidade, matriz[y].A[2]->V.Intensidade, matriz[y].A[3]->V.Intensidade, matriz[y].A[4]->V.Intensidade, matriz[y].A[5]->V.Intensidade, matriz[y].A[6]->V.Intensidade, matriz[y].A[7]->V.Intensidade);
+        }
+        y--;
+    }
+    }
 }
 
+//transpoe o grafo
 grafo* transpor_de_grafo(int altura, int largura, grafo* grafo1){
     grafo *grafo2;
     grafo2 = (grafo*) malloc((largura * altura) * sizeof( grafo));
@@ -300,4 +331,15 @@ grafo* transpor_de_grafo(int altura, int largura, grafo* grafo1){
     }
     free(grafo2);
     return grafo1;
+}
+
+//retorna a energia do menor caminho
+int menorcaminhoGrafo(int largura, grafo* matriz){
+    double min = 1000000000;
+    for(int x = 0; x < largura; x++){
+        if(min > matriz[x].V.Caminho){
+            min = matriz[x].V.Caminho;
+        }
+    }
+    return min;
 }
